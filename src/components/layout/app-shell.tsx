@@ -19,6 +19,8 @@ import {
   FolderCog,
   Plus,
   BookOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { AccountMenu } from "@/components/layout/account-menu";
 import { TransactionDialog } from "@/components/transactions/transaction-dialog";
@@ -127,7 +129,7 @@ const NAV_GROUPS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useMoneyData();
+  const { user, isLoading } = useMoneyData();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   const [defaultType, setDefaultType] = useState<TransactionType>("expense");
@@ -146,6 +148,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [isCollapsed]);
 
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsedPreference(!isCollapsed);
+  }, [isCollapsed]);
+
+  // Keyboard shortcut: Ctrl+B or Cmd+B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        const target = e.target as HTMLElement | null;
+        if (
+          target?.tagName === "INPUT" ||
+          target?.tagName === "TEXTAREA" ||
+          target?.isContentEditable
+        ) {
+          return;
+        }
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [toggleSidebar]);
+
   const openNewTransaction = useCallback((type: TransactionType = "expense") => {
     setEditingTx(null);
     setDefaultType(type);
@@ -158,10 +184,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setDialogOpen(true);
   }, []);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsedPreference(!isCollapsed);
-  };
-
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/login" });
   };
@@ -169,6 +191,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Render clean standalone layout on /login
   if (pathname === "/login") {
     return <>{children}</>;
+  }
+
+  // Prevent flash of dashboard while verifying session
+  if (!user && isLoading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-[var(--bg-page)] text-[var(--text-secondary)]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--border-color)] border-t-[var(--accent-primary)]" />
+          <p className="text-xs font-medium">Memuat buku kas...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -192,39 +226,53 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             isCollapsed ? "lg:w-[72px]" : "lg:w-64"
           )}
         >
-          {/* Sidebar Header */}
+          {/* Sidebar Header with Direct Collapse/Expand Toggle */}
           <div
             className={cn(
               "sidebar-center-when-collapsed flex h-16 items-center border-b border-dashed border-[var(--border-color)]",
-              isCollapsed ? "justify-center px-2" : "justify-between px-4"
+              isCollapsed ? "justify-center px-2" : "justify-between px-3.5"
             )}
           >
             <Link
               href="/"
               title="Money Tracker (IDR)"
-              className="flex items-center gap-2.5 text-base font-bold tracking-tight text-[var(--text-primary)]"
+              className={cn(
+                "flex items-center gap-2.5 text-base font-bold tracking-tight text-[var(--text-primary)]",
+                isCollapsed && "hidden"
+              )}
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]">
                 <BookOpen className="h-4 w-4" aria-hidden="true" />
               </span>
-              <span
-                className={cn(
-                  "sidebar-expanded-only truncate",
-                  isCollapsed && "hidden"
-                )}
-              >
-                Money Tracker
-              </span>
+              <span className="sidebar-expanded-only truncate">Money Tracker</span>
             </Link>
 
-            <span
-              className={cn(
-                "sidebar-expanded-only rounded border border-[var(--border-color)] bg-[var(--bg-page)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--text-secondary)]",
-                isCollapsed && "hidden"
-              )}
-            >
-              IDR
-            </span>
+            {isCollapsed ? (
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                title="Perluas sidebar (Ctrl+B)"
+                aria-label="Perluas sidebar"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-color)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+              >
+                <PanelLeftOpen className="h-4 w-4" aria-hidden="true" />
+              </button>
+            ) : (
+              <div className="sidebar-expanded-only flex items-center gap-1.5">
+                <span className="rounded border border-[var(--border-color)] bg-[var(--bg-page)] px-1.5 py-0.5 font-mono text-[11px] font-medium text-[var(--text-secondary)]">
+                  IDR
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title="Lipat sidebar (Ctrl+B)"
+                  aria-label="Lipat sidebar"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border-color)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+                >
+                  <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Primary Action Button */}
@@ -339,7 +387,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
           </div>
 
-          {/* Compact Sidebar Footer: Single Account Dropdown Trigger (Contains Profile, Theme, Sidebar Collapse & Logout) */}
+          {/* Compact Sidebar Footer: Single Account Dropdown Trigger */}
           <div className="border-t border-dashed border-[var(--border-color)] p-2.5">
             {/* Expanded footer state */}
             <div
@@ -351,8 +399,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <AccountMenu
                 user={user}
                 variant="desktop-expanded"
-                isSidebarCollapsed={isCollapsed}
-                onToggleSidebar={toggleSidebar}
                 onLogout={handleLogout}
               />
             </div>
@@ -367,8 +413,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <AccountMenu
                 user={user}
                 variant="desktop-collapsed"
-                isSidebarCollapsed={isCollapsed}
-                onToggleSidebar={toggleSidebar}
                 onLogout={handleLogout}
               />
             </div>

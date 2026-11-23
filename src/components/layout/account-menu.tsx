@@ -6,8 +6,6 @@ import {
   ChevronUp,
   LogOut,
   Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
   Sun,
   User as UserIcon,
 } from "lucide-react";
@@ -18,8 +16,6 @@ import { cn } from "@/lib/utils";
 interface AccountMenuProps {
   user: AuthUserInfo | null;
   variant: "desktop-expanded" | "desktop-collapsed" | "mobile";
-  isSidebarCollapsed?: boolean;
-  onToggleSidebar?: () => void;
   onLogout: () => Promise<void>;
 }
 
@@ -35,8 +31,6 @@ function getInitials(name?: string | null, email?: string | null): string {
 export function AccountMenu({
   user,
   variant,
-  isSidebarCollapsed = false,
-  onToggleSidebar,
   onLogout,
 }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
@@ -75,11 +69,6 @@ export function AccountMenu({
 
   const handleThemeToggle = () => {
     setTheme(isDark ? "light" : "dark");
-  };
-
-  const handleSidebarToggle = () => {
-    onToggleSidebar?.();
-    setOpen(false);
   };
 
   const handleLogoutClick = async () => {
@@ -212,34 +201,6 @@ export function AccountMenu({
               Ganti
             </span>
           </button>
-
-          {/* Desktop Sidebar Collapse Toggle */}
-          {isDesktop && onToggleSidebar && (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={handleSidebarToggle}
-              className="flex min-h-[40px] w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-subtle)]"
-            >
-              {isSidebarCollapsed ? (
-                <>
-                  <PanelLeftOpen
-                    className="h-4 w-4 shrink-0 text-[var(--text-secondary)]"
-                    aria-hidden="true"
-                  />
-                  <span>Perluas Sidebar</span>
-                </>
-              ) : (
-                <>
-                  <PanelLeftClose
-                    className="h-4 w-4 shrink-0 text-[var(--text-secondary)]"
-                    aria-hidden="true"
-                  />
-                  <span>Lipat Sidebar</span>
-                </>
-              )}
-            </button>
-          )}
 
           {/* Logout Item */}
           {user && (
