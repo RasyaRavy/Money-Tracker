@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: money-tracker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moneytracker
+      POSTGRES_PASSWORD: moneytracker_local_pass
+      POSTGRES_DB: moneytracker
+    ports:
+      - "5433:5432"
+    volumes:
+      - money_tracker_pgdata:/var/lib/postgresql/data
+
+volumes:
+  money_tracker_pgdata:
